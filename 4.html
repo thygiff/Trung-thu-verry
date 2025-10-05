@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Trung Thu</title>
+    <style>
+        :root {
+            --accent: #ff7f50;
+            --accent-2: #ff5722;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            font-family: Inter, "Segoe UI", system-ui, sans-serif;
+            background: #060614;
+            overflow: hidden;
+        }
+
+        .stage {
+            position: relative;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        canvas#starfield,
+        canvas#fireworks {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        canvas#fireworks {
+            z-index: 1;
+        }
+
+        /* MẶT TRĂNG LỚN (moon.png) - ĐÃ ĐIỀU CHỈNH */
+        .moon {
+            position: fixed;
+            top: 1.5%;
+            /* Đã chỉnh: right: 1% -> 1.5% */
+            right: 1.5%;
+            /* Đã chỉnh: 250px -> 450px (tăng kích thước đáng kể) */
+            width: 450px; 
+            height: 450px; 
+            background-image: url('moon.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* CONTAINER CHO LÂN VÀ LỒNG ĐÈN KÉO THEO */
+        .lion-group {
+            position: fixed;
+            left: 0;
+            bottom: -50px; /* Vị trí bắt đầu (ẩn một phần) */
+            pointer-events: none;
+            z-index: 5;
+            animation: lion-move 10s ease-in-out infinite alternate; 
+        }
+
+        /* HÌNH ẢNH CON LÂN - ĐÃ ĐIỀU CHỈNH */
+        .lion-dance-img {
+            width: 500px; 
+            display: block;
+            position: relative; 
+            z-index: 2; 
+        }
+        
+        /* LỒNG ĐÈN KÉO THEO (chung) */
+        .tail-lantern {
+            position: absolute;
+            width: 42px; 
+            bottom: 140px;
+            z-index: 1;
+            transform-origin: top center; /* Điểm xoay cho hiệu ứng swing */
+            content: url('https://github.com/Panbap/Trungthu/blob/main/den.png?raw=true'); /* Lấy hình lồng đèn (den.png) */
+        }
+
+        /* VỊ TRÍ CỦA 3 LỒNG ĐÈN - ĐÃ ĐIỀU CHỈNH */
+        .tail-lantern:nth-child(2) {
+            left: 340px; 
+            bottom: 120px;
+            width: 42px;
+            animation: swing 1.5s ease-in-out infinite; 
+        }
+        .tail-lantern:nth-child(3) {
+            left: 280px; 
+            bottom: 100px;
+            width: 38px;
+            animation: swing 1.8s ease-in-out infinite;
+        }
+        .tail-lantern:nth-child(4) {
+            left: 220px; 
+            bottom: 80px;
+            width: 34px;
+            animation: swing 2.1s ease-in-out infinite;
+        }
+
+        /* HOẠT ẢNH LÂN */
+        @keyframes lion-move {
+            0% { transform: translateX(-20px) translateY(0px) rotate(0deg); }
+            50% { transform: translateX(20px) translateY(-10px) rotate(2deg); }
+            100% { transform: translateX(-20px) translateY(0px) rotate(0deg); }
+        }
+
+        /* LỒNG ĐÈN THẢ BAY */
+        #lantern-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .lantern {
+            position: absolute;
+            pointer-events: auto;
+            width: 40px;
+            user-select: none;
+        }
+
+        /* Hiệu ứng đu đưa cho tất cả lồng đèn */
+        @keyframes swing {
+            0% {
+                transform: rotate(-5deg);
+            }
+
+            50% {
+                transform: rotate(5deg);
+            }
+
+            100% {
+                transform: rotate(-5deg);
+            }
+        }
+
+        .swing {
+            animation: swing 2s ease-in-out infinite;
+        }
+
+        /* CÁC PHẦN KHÁC GIỮ NGUYÊN */
+        @keyframes fade-in-out {
+            0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+            10% { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+            90% { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+        }
+
+        #wish-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.96);
+            color: var(--accent-2);
+            font-family: Inter, "Segoe UI", system-ui, sans-serif;
+            padding: 28px 20px;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            opacity: 0;
+            animation: none;
+            pointer-events: none;
+            z-index: 9999;
+            box-shadow: 0 6px 30px rgba(0, 0, 0, 0.35);
+            text-align: center;
+            max-width: 90%;
+            box-sizing: border-box;
+        }
+
+        #hint {
+            position: fixed;
+            bottom: 8vh;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 14px;
+            background: linear-gradient(90deg, rgba(255, 127, 80, 0.95), rgba(255, 87, 34, 0.95));
+            color: white;
+            border-radius: 999px;
+            font-weight: 600;
+            z-index: 9998;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+            opacity: 0;
+            transition: opacity .35s ease;
+            pointer-events: none;
+            white-space: pre-line;
+        }
+
+        .controls {
+            position: fixed;
+            left: 18px;
+            top: 18px;
+            z-index: 10;
+            color: #fff;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 12px;
+            border-radius: 10px;
+        }
+
+        .music-toggle {
+            cursor: pointer;
+            margin-left: 10px;
+            color: #fff;
+            opacity: 0.95;
+        }
+
+        /* DÒNG CHỮ - ĐÃ ĐIỀU CHỈNH CĂN GIỮA */
+        .title-text {
+            position: fixed;
+            top: 8vh;
+            left: 50%;
+            transform: translateX(-50%);
+            right: auto;
+            color: #ffd07a;
+            font-size: 2.4rem;
+            font-weight: 800;
+            text-shadow: 0 0 12px rgba(255,200,120,0.9), 0 0 30px rgba(255,140,60,0.5);
+            z-index: 50;
+            pointer-events: none;
+            font-family: "Segoe UI", system-ui, sans-serif;
+            white-space: nowrap;
+        }
+
+        /* ĐIỀU CHỈNH CHO ĐIỆN THOẠ */
+        @media (max-width:600px) {
+            .moon {
+                top: 1.5vh;
+                /* Đã chỉnh: right: 1vw -> 1.5vw */
+                right: 1.5vw;
+                /* Đã chỉnh: 180px -> 250px (tăng kích thước) */
+                width: 250px; 
+                height: 250px; 
+            }
+
+            .lion-group {
+                bottom: -30px;
+                animation: lion-move-mobile 8s ease-in-out infinite alternate;
+            }
+
+            .lion-dance-img {
+                width: 300px; 
+            }
+
+            /* VỊ TRÍ LỒNG ĐÈN KÉO THEO TRÊN MOBILE - ĐÃ ĐIỀU CHỈNH */
+            .tail-lantern:nth-child(2) { left: 200px; bottom: 80px; width: 40px; }
+            .tail-lantern:nth-child(3) { left: 150px; bottom: 60px; width: 35px; }
+            .tail-lantern:nth-child(4) { left: 100px; bottom: 40px; width: 30px; }
+
+
+            @keyframes lion-move-mobile {
+                0% { transform: translateX(-10px) translateY(0px) rotate(0deg); }
+                50% { transform: translateX(10px) translateY(-5px) rotate(1deg); }
+                100% { transform: translateX(-10px) translateY(0px) rotate(0deg); }
+            }
+
+            #wish-popup {
+                font-size: 0.95rem;
+                padding: 16px 12px;
+            }
+
+            #hint {
+                font-size: 0.9rem;
+                bottom: 12vh;
+            }
+
+            .title-text {
+                top: 15vh;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 1.6rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="stage">
+        <canvas id="starfield"></canvas>
+        <canvas id="fireworks"></canvas>
+
+        
+        <div class="moon" aria-hidden="true"></div>
+
+        <div class="lion-group">
+            <img src="lan.png" alt="Múa Lân" class="lion-dance-img">
+            <span class="tail-lantern"></span>
+            <span class="tail-lantern"></span>
+            <span class="tail-lantern"></span>
+        </div>
+
+        <div id="lantern-container"></div>
+        
+        <div id="wish-popup" role="dialog" aria-live="polite"></div>
+
+        <div id="hint">Chạm màn hình để mở nhạc và thả đèn ✨</div>
+
+        <div class="controls">
+            <span class="music-toggle" id="musicToggle"></span>
+        </div>
+
+        <div class="title-text">Đêm Hội Trung Thu</div>
+    </div>
+
+    <audio id="bg-music" loop preload="auto">
+        <source src="anh_se_cho_minh.mp3.mp3" type="audio/mp3">
+        Trình duyệt của bạn không hỗ trợ thẻ audio.
+    </audio>
+
+
+    <script>
+        /* --- Code bầu trời sao + lồng đèn (giữ nguyên) --- */
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+        let w, h, stars = [], meteors = [];
+        function resizeCanvas() {
+            w = canvas.width = innerWidth;
+            h = canvas.height = innerHeight;
+            stars = [];
+            const count = Math.round((w * h) / 2200);
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    r: Math.random() * 0.9 + 0.1,
+                    a: Math.random() * 0.8 + 0.2,
+                    t: Math.random() * 0.02 + 0.002
+                });
+            }
+        }
+        function drawStars() {
+            ctx.clearRect(0, 0, w, h);
+            for (const s of stars) {
+                s.a += (Math.random() > 0.5 ? 1 : -1) * s.t;
+                s.a = Math.max(0.05, Math.min(1, s.a));
+                ctx.beginPath();
+                ctx.globalAlpha = s.a;
+                ctx.fillStyle = '#fff';
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+        function createMeteor() {
+            const startX = Math.random() * w;
+            const startY = Math.random() * (h / 3);
+            const speed = Math.random() * 10 + 6;
+            meteors.push({
+                x: startX, y: startY, vx: speed + 6, vy: speed / 2, len: Math.random() * 120 + 100, a: 1
+            });
+        }
+        function drawMeteors() {
+            for (let i = meteors.length - 1; i >= 0; i--) {
+                const m = meteors[i];
+                const x2 = m.x - m.len;
+                const y2 = m.y - m.len / 2;
+                const g = ctx.createLinearGradient(m.x, m.y, x2, y2);
+                g.addColorStop(0, `rgba(255,255,255,${m.a})`);
+                g.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.strokeStyle = g;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(m.x, m.y);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                m.x += m.vx; m.y += m.vy; m.a -= 0.02;
+                if (m.a <= 0 || m.x > w + 200 || m.y > h + 200) meteors.splice(i, 1);
+            }
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+        }
+        function loop() {
+            drawStars();
+            drawMeteors();
+            if (Math.random() < 0.01) createMeteor();
+            requestAnimationFrame(loop);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        loop();
+
+        const lanternContainer = document.getElementById('lantern-container');
+        
+        // --- DANH SÁCH LỜI CHÚC MỚI ĐÃ ĐƯỢC CẬP NHẬT ---
+        const wishes = [
+            "Trung Thu này, chẳng cần gì xa hoa — chỉ mong hai đứa mình vẫn bình yên, vẫn chọn nhau.",
+            "Khi ta trưởng thành, Trung Thu không chỉ là trăng tròn, mà là khoảnh khắc được nghĩ về người mình thương.",
+            "Trăng có tròn hay khuyết cũng chẳng sao, chỉ cần lòng mình còn hướng về nhau.",
+            "Tớ không cần lời hứa, chỉ cần thấy cậu vẫn ổn và vẫn mỉm cười mỗi mùa trăng rằm.",
+            "Tình cảm của mình chẳng cần ồn ào, chỉ cần đủ lâu để cùng nhau đi qua nhiều mùa trăng nữa.",
+            "Có những người chỉ lướt qua như cơn gió, còn cậu — là người ở lại trong mọi mùa trăng của tớ.",
+            "Trung Thu chẳng còn là chuyện bánh hay đèn, mà là câu hỏi nhỏ: ‘Cậu có đang hạnh phúc không?’",
+            "Người ta nói tình yêu trưởng thành là khi im lặng cũng hiểu lòng nhau – như cách tớ vẫn nhớ cậu dù không nói ra.",
+            "Cậu biết không, trăng rằm nào rồi cũng qua, nhưng những kỷ niệm với cậu thì vẫn sáng trong lòng tớ.",
+            "Chỉ mong sau này, khi cùng nhau ngắm trăng, ta vẫn thấy bình yên như bây giờ."
+        ];
+        // --- KẾT THÚC CẬP NHẬT LỜI CHÚC ---
+
+        function createLantern() {
+            const lantern = document.createElement("img");
+            lantern.src = "https://github.com/Panbap/Trungthu/blob/main/den.png?raw=true";
+            lantern.className = "lantern swing";
+
+            const layer = Math.floor(Math.random() * 3) + 1;
+            let size = 40, duration = 10000, opacity = 0.8;
+
+            if (layer === 1) { size = 20 + Math.random() * 20; duration = 14000 + Math.random() * 5000; opacity = 0.5; }
+            else if (layer === 2) { size = 30 + Math.random() * 30; duration = 12000 + Math.random() * 4000; opacity = 0.7; }
+            else { size = 40 + Math.random() * 40; duration = 10000 + Math.random() * 3000; opacity = 0.95; }
+
+            lantern.style.width = size + "px";
+            lantern.style.left = Math.random() * 90 + "vw";
+            lantern.style.bottom = "0px";
+            lantern.style.opacity = opacity;
+
+            lanternContainer.appendChild(lantern);
+
+            const drift = Math.random() * 140 - 70;
+            const up = 120 + Math.random() * 40;
+            lantern.animate([
+                { transform: "translate(0,0)", opacity: opacity },
+                { transform: `translate(${drift}px, -${up}vh)`, opacity: 0 }
+            ], { duration: duration, easing: "linear", fill: "forwards" });
+
+            setTimeout(() => lantern.remove(), duration);
+        }
+
+        // TĂNG SỐ LƯỢNG LỒNG ĐÈN
+        setInterval(createLantern, 300);
+        for (let i = 0; i < 6; i++) { setTimeout(createLantern, i * 400); }
+
+
+        /* --- LỜI CHÚC TỰ ĐỘNG HIỂN THỊ (15 GIÂY) --- */
+        const wishPopup = document.getElementById('wish-popup');
+        let currentWishIndex = 0;
+
+        function showNextWish() {
+            // Lấy lời chúc và thay thế dấu gạch ngang dài (—) bằng dấu gạch ngang thường (-)
+            const currentWish = wishes[currentWishIndex].replace(/—/g, '-');
+            wishPopup.textContent = currentWish;
+
+            wishPopup.style.animation = 'fade-in-out 4s ease-in-out forwards';
+
+            setTimeout(() => {
+                wishPopup.style.animation = 'none';
+            }, 4000);
+
+            currentWishIndex = (currentWishIndex + 1) % wishes.length;
+        }
+
+        // KHỞI ĐỘNG SAU 15 GIÂY
+        setTimeout(() => {
+            showNextWish();
+            setInterval(showNextWish, 6000);
+        }, 15000); // 15000ms = 15 giây
+
+        /* --- KẾT THÚC LỜI CHÚC TỰ ĐỘNG --- */
+
+
+        /* --- Nhạc nền & Hint TỐI ƯU HÓA (GIỮ NGUYÊN) --- */
+        const bg = document.getElementById('bg-music');
+        const musicToggle = document.getElementById('musicToggle');
+        let musicStarted = false;
+
+        // HÀM MỚI: Chỉ để hiển thị và ẩn dòng chữ gợi ý
+        function showHint() {
+            const hint = document.getElementById('hint');
+            if (hint.style.opacity !== '1') {
+                hint.style.opacity = '1';
+                setTimeout(() => hint.style.opacity = '0', 3500);
+            }
+        }
+
+        function startMusic() {
+            if (musicStarted) return;
+            if (!bg) return;
+
+            bg.volume = 0.0;
+            bg.play().then(() => {
+                let v = 0;
+                const i = setInterval(() => {
+                    v += 0.05;
+                    if (v >= 0.9) { v = 0.9; clearInterval(i); }
+                    bg.volume = v;
+                }, 120);
+                musicStarted = true;
+                musicToggle.textContent = '🔊';
+            }).catch(() => {
+                console.warn('Không thể phát nhạc tự động (bị chặn).');
+            });
+        }
+
+        musicToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!musicStarted) { startMusic(); return; }
+            if (bg.paused) { bg.play(); musicToggle.textContent = '🔊'; }
+            else { bg.pause(); musicToggle.textContent = '🔈'; }
+        });
+
+        // Gọi startMusic khi người dùng chạm/nhấp lần đầu (để vượt chặn autoplay)
+        document.addEventListener('pointerdown', function onceStart() {
+            startMusic();
+            document.removeEventListener('pointerdown', onceStart);
+        });
+
+        // TỰ ĐỘNG HIỂN THỊ DÒNG CHỮ SAU 3 GIÂY
+        window.addEventListener('load', () => {
+            setTimeout(showHint, 3000);
+        });
+
+        document.addEventListener('click', (e) => {
+            // Vẫn giữ lại phần này, dù popup hiển thị tự động
+        });
+
+
+        /* --- Code pháo hoa (giữ nguyên) --- */
+        const fwCanvas = document.getElementById("fireworks");
+        const fctx = fwCanvas.getContext("2d");
+        let cw, ch;
+        function resizeFW() {
+            cw = fwCanvas.width = window.innerWidth;
+            ch = fwCanvas.height = window.innerHeight;
+        }
+        window.addEventListener("resize", resizeFW);
+        resizeFW();
+
+        function random(min, max) { return Math.random() * (max - min) + min; }
+        function distance(ax, ay, bx, by) { const dx = bx - ax, dy = by - ay; return Math.sqrt(dx * dx + dy * dy); }
+
+        class Firework {
+            constructor(sx, sy, tx, ty) {
+                this.x = sx; this.y = sy; this.sx = sx; this.sy = sy; this.tx = tx; this.ty = ty;
+                this.distanceToTarget = distance(sx, sy, tx, ty);
+                this.distanceTraveled = 0;
+                this.coordinates = [];
+                this.coordinateCount = 3;
+                while (this.coordinateCount--) { this.coordinates.push([this.x, this.y]); }
+                this.angle = Math.atan2(ty - sy, tx - sx);
+                this.speed = 5; this.acceleration = 1.05;
+                this.brightness = random(50, 70); this.targetRadius = 8;
+            }
+            update(i) {
+                this.coordinates.pop();
+                this.coordinates.unshift([this.x, this.y]);
+                this.speed *= this.acceleration;
+                const vx = Math.cos(this.angle) * this.speed, vy = Math.sin(this.angle) * this.speed;
+                this.distanceTraveled = distance(this.sx, this.sy, this.x + vx, this.y + vy);
+                if (this.distanceTraveled >= this.distanceToTarget) {
+                    createParticles(this.tx, this.ty);
+                    fireworks.splice(i, 1);
+                } else { this.x += vx; this.y += vy; }
+            }
+            draw() {
+                fctx.beginPath();
+                fctx.moveTo(this.coordinates[this.coordinates.length - 1][0], this.coordinates[this.coordinates.length - 1][1]);
+                fctx.lineTo(this.x, this.y);
+                fctx.strokeStyle = `hsl(${random(0, 360)}, 100%, ${this.brightness}%)`;
+                fctx.stroke();
+            }
+        }
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.coordinates = []; this.coordinateCount = 5;
+                while (this.coordinateCount--) { this.coordinates.push([this.x, this.y]); }
+                this.angle = random(0, Math.PI * 2);
+                this.speed = random(1, 10); this.friction = 0.95; this.gravity = 0.7;
+                this.hue = random(0, 360); this.brightness = random(50, 80);
+                this.alpha = 1; this.decay = random(0.015, 0.03);
+            }
+            update(i) {
+                this.coordinates.pop();
+                this.coordinates.unshift([this.x, this.y]);
+                this.speed *= this.friction;
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed + this.gravity;
+                this.alpha -= this.decay;
+                if (this.alpha <= 0) { particles.splice(i, 1); }
+            }
+            draw() {
+                fctx.beginPath();
+                fctx.moveTo(this.coordinates[this.coordinates.length - 1][0], this.coordinates[this.coordinates.length - 1][1]);
+                fctx.lineTo(this.x, this.y);
+                fctx.strokeStyle = `hsla(${this.hue}, 100%, ${this.brightness}%, ${this.alpha})`;
+                fctx.stroke();
+            }
+        }
+
+        function createParticles(x, y) {
+            let count = 30;
+            while (count--) { particles.push(new Particle(x, y)); }
+        }
+
+        let fireworks = [], particles = [];
+        function loopFW() {
+            requestAnimationFrame(loopFW);
+            fctx.globalCompositeOperation = 'destination-out';
+            fctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            fctx.fillRect(0, 0, cw, ch);
+            fctx.globalCompositeOperation = 'lighter';
+            for (let i = fireworks.length - 1; i >= 0; i--) { fireworks[i].draw(); fireworks[i].update(i); }
+            for (let i = particles.length - 1; i >= 0; i--) { particles[i].draw(); particles[i].update(i); }
+            if (fireworks.length < 5) {
+                fireworks.push(new Firework(cw / 2, ch, random(100, cw - 100), random(50, ch / 2)));
+            }
+        }
+        loopFW();
+    </script>
+</body>
+
+</html>
